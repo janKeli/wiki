@@ -9,9 +9,13 @@ The engine
   - finds the content
   - creates a vector of inline nodes from the content `fn parseInlines(text: &str) -> Vec<InlineNode>`
   - wraps the inline nodes and the type into a block
-- turns them into HTML `fn genHTML(blocks: Vec<BlockNode>) -> String`
-- wraps it in a template `fn wrapWithTemplate(content: String) -> String`
-- writes it all to the dist directory
+- saves the result in a vector
+- generates the links between files
+- generates the tag structure
+- wraps the result of all this in `Document`s
+- writes them to the dist directory
+- gets the full list of tags plus the file names and creates an `index.json`
+- generates feeds for `#blog`
 
 ## Supported markdown syntax
 
@@ -25,6 +29,15 @@ The engine
 ## Structures
 
 ```rust
+struct Document {
+    name: String,
+    tags: Vec<String>,
+    outgoingLinks: Vec<String>,
+    incomingLinks: Vec<String>,
+
+    blocks: Vec<Node>,
+}
+
 enum BlockNode {
     Heading1(Vec<InlineNode>),
     Heading2(Vec<InlineNode>),
