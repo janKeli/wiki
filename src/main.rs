@@ -2,57 +2,51 @@ use std::{fs, path::PathBuf};
 
 use walkdir::WalkDir;
 
-#[derive(Debug)]
 struct Document {
     name: String,
     tags: Vec<String>,
     outgoing_links: Vec<String>,
     incoming_links: Vec<String>,
 
-    blocks: Vec<Block>,
+    blocks: Vec<Node>,
 }
 
-#[derive(Debug)]
-enum Block {
-    Heading1(Vec<Inline>),
-    Heading2(Vec<Inline>),
-    Heading3(Vec<Inline>),
-    Paragraph(Vec<Inline>),
-
-    Blockquote(Vec<Inline>),
-    UnorderedList(Vec<Block>),
-    OrderedList(Vec<Block>),
-    TaskList(Vec<Task>),
-
-    Code(String),
-
-    HorizontalRule,
-
-    Table {
-        head: Vec<Inline>,
-        lines: Vec<Vec<Inline>>,
+enum Node {
+    BlockRegular {
+        kind: BlockRegular,
+        body: Box<Node>,
+    },
+    BlockNestable {
+        kind: BlockNestable,
+        body: Box<Node>,
+    },
+    Inline {
+        kind: Inline,
+        body: String,
     },
 }
 
-#[derive(Debug)]
-struct Task {
-    text: Block,
-    done: bool,
+enum BlockRegular {
+    Heading1,
+    Heading2,
+    Paragraph,
+    Blockquote,
 }
 
-#[derive(Debug)]
+enum BlockNestable {
+    UnorderedList,
+    OrderedList,
+    TaskList,
+}
+
 enum Inline {
-    Text(String),
-    Italic(String),
-    Bold(String),
-    Strikethrough(String),
-    Code(String),
-    Tag(String),
-
-    RawHTML(String),
-
-    Link { url: String, text: Vec<Inline> },
-    Image { url: String, text: Vec<Inline> },
+    Text,
+    Emphasis,
+    Strike,
+    Code,
+    Tag,
+    Link,
+    Image,
 }
 
 fn main() {
@@ -61,7 +55,7 @@ fn main() {
         .flatten()
         .collect();
 
-    dbg!(files);
+    todo!();
 }
 
 fn list_files(directory: PathBuf) -> impl Iterator<Item = PathBuf> {
@@ -78,8 +72,7 @@ fn parse_file(path: PathBuf) -> Option<Document> {
     }
 
     let content = fs::read_to_string(&path).ok()?;
-
-    let blocks: Vec<Block> = content.split("\n\n").into_iter().map(parse_block).collect();
+    let blocks: Vec<Node> = parse_nodes(&content);
 
     Some(Document {
         name,
@@ -90,53 +83,63 @@ fn parse_file(path: PathBuf) -> Option<Document> {
     })
 }
 
-fn parse_block(text: &str) -> Block {
-    if text.starts_with("# ") {
-        Block::Heading1(parse_inline(&text[2..]))
-    } else if text.starts_with("## ") {
-        Block::Heading2(parse_inline(&text[3..]))
-    } else if text.starts_with("### ") {
-        Block::Heading3(parse_inline(&text[4..]))
-    } else if text.starts_with("> ") {
-        Block::Blockquote(parse_inline(&text[2..]))
-    } else if text.starts_with("- [ ] ") || text.starts_with("- [x] ") {
-        Block::TaskList(
-            text.lines()
-                .into_iter()
-                .map(|line| Task {
-                    text: parse_block(&line[6..]),
-                    done: line.as_bytes()[3] == b'x',
-                })
-                .collect(),
-        )
-    } else if text.starts_with("- ") {
-        Block::UnorderedList(
-            text.lines()
-                .into_iter()
-                .map(|line| &line[2..])
-                .map(parse_block)
-                .collect(),
-        )
-    } else if text.starts_with("1. ") || text.starts_with("1) ") {
-        Block::OrderedList(
-            text.lines()
-                .into_iter()
-                .map(|line| &line[2..])
-                .map(parse_block)
-                .collect(),
-        )
-    } else if text.starts_with("```") {
-        Block::Code(
-            text.lines()
-                .filter(|line| !line.starts_with("```"))
-                .map(|line| format!("{}\n", line))
-                .collect(),
-        )
-    } else {
-        Block::Paragraph(parse_inline(text))
-    }
-}
+fn parse_nodes(text: &str) -> Vec<Node> {
+    let mut stack = Vec::new();
+    let mut blocks = Vec::new();
 
-fn parse_inline(text: &str) -> Vec<Inline> {
-    return vec![Inline::Text(String::from(text))];
+    struct Start {
+        node: Block,
+        children: Node,
+        idx: usize,
+    }
+
+    enum Block {
+        Regular(BlockRegular),
+        Nestable(BlockNestable),
+    }
+
+    for (idx, line) in text.lines().enumerate() {
+        let start = if line.starts_with("# ") {
+            Some(Start {
+                node: Block::Regular(BlockRegular::Heading1),
+                idx,
+            })
+        } else if line.starts_with("## ") {
+            Some(Start {
+                node: Block::Regular(BlockRegular::Heading2),
+                idx,
+            })
+        } else if line.starts_with("> ") {
+            Some(Start {
+                node: Block::Regular(BlockRegular::Blockquote),
+                idx,
+            })
+        } else {
+            None
+        };
+
+        if let Some(start) = start {
+            stack.push(start);
+            continue;
+        }
+
+        if line.is_empty() {
+            let start = match stack.pop() {
+                Some(data) => data,
+                None => continue,
+            };
+
+            let node = match start.node {
+                Block::Regular(kind) => Node::BlockRegular {
+                    kind,
+                    body: text[start.idx..idx],
+                },
+                _ => todo!(),
+            };
+
+            blocks.push(node);
+        }
+    }
+
+    todo!();
 }
