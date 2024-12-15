@@ -1,21 +1,22 @@
 # The wiki engine
 
 The engine
-- gets the list of all markdown files in a directory `fn listFiles(dir)`
-- reads them
-- splits on empty lines, treats each item as a block `split`
-- parses them into an AST `fn parseBlock(text: &str) -> BlockNode` should eventually be `const fn`
-  - determines the block type
-  - finds the content
-  - creates a vector of inline nodes from the content `fn parseInlines(text: &str) -> Vec<InlineNode>`
-  - wraps the inline nodes and the type into a block
-- saves the result in a vector
-- generates the links between files
-- generates the tag structure
-- wraps the result of all this in `Document`s
-- writes them to the dist directory
-- gets the full list of tags plus the file names and creates an `index.json`
-- generates feeds for `#blog`
+
+- [x] gets the list of all markdown files in a directory `fn listFiles(dir)`
+- [x] reads them
+- [x] splits on empty lines, treats each item as a block `split`
+- [ ] parses them into an AST `fn parseBlock(text: &str) -> BlockNode` should eventually be `const fn`
+  - [x] determines the block type
+  - [x] finds the content
+  - [ ] creates a vector of inline nodes from the content `fn parseInlines(text: &str) -> Vec<InlineNode>`
+  - [x] wraps the inline nodes and the type into a block
+- [x] saves the result in a vector
+- [ ] generates the links between files
+- [ ] generates the tag structure
+- [ ] wraps the result of all this in `Document`s
+- [ ] writes them to the dist directory
+- [ ] gets the full list of tags plus the file names and creates an `index.json`
+- [ ] generates feeds for `#blog`
 
 ## Supported markdown syntax
 
@@ -32,10 +33,10 @@ The engine
 struct Document {
     name: String,
     tags: Vec<String>,
-    outgoingLinks: Vec<String>,
-    incomingLinks: Vec<String>,
+    outgoing_links: Vec<String>,
+    incoming_links: Vec<String>,
 
-    blocks: Vec<Node>,
+    blocks: Vec<BlockNode>,
 }
 
 enum BlockNode {
@@ -73,6 +74,7 @@ enum InlineNode {
     Bold(String),
     Strikethrough(String),
     Code(String),
+    Tag(String),
 
     RawHTML(String),
 

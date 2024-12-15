@@ -1,10 +1,12 @@
 # my files
-markdown/todo.txt
-markdown/ideas.md
-markdown/QuickNote.md
-markdown/meatspace/*.md
+/markdown/todo.txt
+/markdown/ideas.md
+/markdown/QuickNote.md
+/markdown/meatspace/*.md
 
 # tools' files
-.stignore
-.stfolder
-.direnv
+/markdown/.stignore
+/markdown/.stfolder
+/.direnv
+/target
+/dist
